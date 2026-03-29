@@ -27,7 +27,7 @@ import com.google.cloud.datastore.Entity;
 import com.google.gson.Gson;
 
 
-@Path("/Login")
+@Path("")
 @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
 public class LoginResource {
 
@@ -42,60 +42,11 @@ public class LoginResource {
 	
 	public LoginResource() {} // Nothing to be done here
 
-	@POST@Path("/ReLogin")
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response doLoginV1b(Operation<InputData> op) {
-        InputData data = op.input;
-        TokenData tData = op.token;
 
-        LOG.fine("Attempt to login user");
-
-        Entity tokenLog = validateToken(tData.tokenId);
-
-        if(tokenLog != null) {
-            String username = tokenLog.getString("username");
-            LOG.info("Token login successful for: " + username);
-
-            AuthToken at = new AuthToken(username);
-            return Response.ok(g.toJson(at)).build();
-        }
-
-        LOG.fine("Attempt to login user: " + data.username);
-
-		Key userKey = userKeyFactory.newKey(data.username);
-		Entity user = datastore.get(userKey);
-		
-		if( user != null ) {
-
-                AuthToken token = new AuthToken(data.username);
-
-                // added token storer
-                Key tokenKey = datastore.newKeyFactory()
-                        //.addAncestor(PathElement.of("User", data.username)) // add parent
-                        .setKind("Token")
-                        .newKey(token.tokenID);
-
-                Entity tokenEntity = Entity.newBuilder(tokenKey)
-                        .set("username", token.username)
-                        .set("creationData", token.creationData)
-                        .set("expirationData", token.expirationData)
-                        .build();
-
-                datastore.put(tokenEntity);
-                // data storer
-
-				return Response.ok(g.toJson(token)).build();
-		}
-		else {
-			LOG.warning("Failed login attempt for username: " + data.username);
-			return Response.status(Status.FORBIDDEN).build();
-		}
-	}
 
 
     @POST
-    @Path("")
+    @Path("/Login")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doCreateAccount(Operation<InputData> op) {
@@ -152,6 +103,7 @@ public class LoginResource {
             return Response.status(Status.FORBIDDEN).build();
         }
     }
+
     private Entity validateToken(String tokenID) {
 
         if(tokenID == null)
@@ -172,5 +124,57 @@ public class LoginResource {
             return null;
 
         return token;
+    }
+
+
+    @POST@Path("/ReLogin")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response doLoginV1b(Operation<InputData> op) {
+        InputData data = op.input;
+        TokenData tData = op.token;
+
+        LOG.fine("Attempt to login user");
+
+        Entity tokenLog = validateToken(tData.tokenId);
+
+        if(tokenLog != null) {
+            String username = tokenLog.getString("username");
+            LOG.info("Token login successful for: " + username);
+
+            AuthToken at = new AuthToken(username);
+            return Response.ok(g.toJson(at)).build();
+        }
+
+        LOG.fine("Attempt to login user: " + data.username);
+
+        Key userKey = userKeyFactory.newKey(data.username);
+        Entity user = datastore.get(userKey);
+
+        if( user != null ) {
+
+            AuthToken token = new AuthToken(data.username);
+
+            // added token storer
+            Key tokenKey = datastore.newKeyFactory()
+                    //.addAncestor(PathElement.of("User", data.username)) // add parent
+                    .setKind("Token")
+                    .newKey(token.tokenID);
+
+            Entity tokenEntity = Entity.newBuilder(tokenKey)
+                    .set("username", token.username)
+                    .set("creationData", token.creationData)
+                    .set("expirationData", token.expirationData)
+                    .build();
+
+            datastore.put(tokenEntity);
+            // data storer
+
+            return Response.ok(g.toJson(token)).build();
+        }
+        else {
+            LOG.warning("Failed login attempt for username: " + data.username);
+            return Response.status(Status.FORBIDDEN).build();
+        }
     }
 }

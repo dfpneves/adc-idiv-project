@@ -20,7 +20,7 @@ import rest.util.*;
 @Path("")
 public class CreateAccountResource {
 
-    private static final Logger LOG = Logger.getLogger(RegisterResource.class.getName());
+    private static final Logger LOG = Logger.getLogger(CreateAccountResource.class.getName());
     private static final Datastore datastore = DatastoreOptions.getDefaultInstance().getService();
 
     private final Gson g = new Gson();

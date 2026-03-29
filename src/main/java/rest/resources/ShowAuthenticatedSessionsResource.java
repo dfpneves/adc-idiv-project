@@ -30,26 +30,26 @@ import com.google.gson.Gson;
 
 @Path("")
 @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
-public class ShowUsersResource {
+public class ShowAuthenticatedSessionsResource {
 
     /**
      * Logger Object
      */
-    private static final Logger LOG = Logger.getLogger(ShowUsersResource.class.getName());
+    private static final Logger LOG = Logger.getLogger(ShowAuthenticatedSessionsResource.class.getName());
     private static final Datastore datastore = DatastoreOptions.getDefaultInstance().getService();
     private static final KeyFactory userKeyFactory = datastore.newKeyFactory().setKind("User");
 
     private final Gson g = new Gson();
 
-    public ShowUsersResource() {
+    public ShowAuthenticatedSessionsResource() {
     }
 
 
     @POST
-    @Path("/ShowUsers")
+    @Path("/ShowAuthenticatedSessions")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response doCreateAccount(Operation<InputData> op) {
+    public Response showAuthenticatedSessionsResource(Operation<InputData> op) {
         InputData inputData = op.input;
         TokenData tokenData = op.token;
 
@@ -77,33 +77,21 @@ public class ShowUsersResource {
 
         String callerRole = callerUser.getString("user_role");
 
-        // Prepare the query for users
-        Query<Entity> query;
-
-        Datastore datastore = DatastoreOptions.getDefaultInstance().getService();
-        Query<Entity> allUsersQuery;
-
-        // ADMIN sees all users
-        if ("ADMIN".equals(callerRole)) {
-            allUsersQuery = Query.newEntityQueryBuilder()
-                    .setKind("User")
-                    .build();
-        }
-        // BOFFICER sees only USER accounts
-        else if ("BOFFICER".equals(callerRole)) {
-            allUsersQuery = Query.newEntityQueryBuilder()
-                    .setKind("User")
-                    .setFilter(StructuredQuery.PropertyFilter.eq("user_role", "USER"))
-                    .build();
-        }
-        // Other roles are unauthorized
-        else {
+        if (!("ADMIN".equals(callerRole))) {
             // add error here
             return Response.ok("role error",MediaType.TEXT_PLAIN).build();
         }
 
+        // Prepare the query for users
+        Query<Entity> query;
+
+        Datastore datastore = DatastoreOptions.getDefaultInstance().getService();
+        Query<Entity> allTokensQuery = Query.newEntityQueryBuilder()
+                .setKind("Token")
+                .build();
+
         // Execute the query
-        QueryResults<Entity> results = datastore.run(allUsersQuery);
+        QueryResults<Entity> results = datastore.run(allTokensQuery);
 
 
         // Build JSON array
@@ -111,19 +99,31 @@ public class ShowUsersResource {
 
         try {
             while (results.hasNext()) {
-                Entity user = results.next();
-                JsonObject userJson = new JsonObject();
-                userJson.addProperty("userId", user.getKey().getName());
-                userJson.addProperty("username", user.getKey().getName());  // or user.getString("user_username") if stored
-                userJson.addProperty("email", user.getKey().getName());
-                userJson.addProperty("role", user.getString("user_role"));
-                usersArray.add(userJson);
+                Entity token = results.next();
+
+                String curUsername = token.getString("username");
+                long expiration = token.getLong("expirationData");
+
+                Key curUserKey = userKeyFactory.newKey(curUsername);
+                Entity user = datastore.get(curUserKey);
+
+                if (user != null) {
+
+                    String role = user.getString("user_role");
+
+                    JsonObject tokenJson = new JsonObject();
+                    tokenJson.addProperty("tokenId", token.getKey().getName());
+                    tokenJson.addProperty("username", curUsername);  // or user.getString("user_username") if stored
+                    tokenJson.addProperty("role", role);
+                    tokenJson.addProperty("expiresAt:", expiration);
+                    usersArray.add(tokenJson);
+                }
             }
-            // Wrap in final response
             JsonObject response = new JsonObject();
             response.addProperty("status", "success");
+
             JsonObject dataJson = new JsonObject();
-            dataJson.add("users", usersArray);
+            dataJson.add("sessions", usersArray);
             response.add("data", dataJson);
 
             return Response.ok(g.toJson(response), MediaType.APPLICATION_JSON).build();
@@ -131,10 +131,33 @@ public class ShowUsersResource {
             e.printStackTrace();
             return Response.ok("ERROR: " + e.getMessage(), MediaType.TEXT_PLAIN).build();
         }
+        /*
+        format
+        input
+        {
+        "input": {},
+        "token": { ... }
+
+        output:
+        {
+            "status": "success",
+            "data": {
+                "sessions": [
+                            {
+                                "tokenId": "string",
+                                "username": "string",
+                                "role": "string",
+                                "expiresAt": "timestamp"
+                            }
+                        ]
+                    }
+            }
+        }
+         */
     }
 
     @GET
-    @Path("/helloSU")
+    @Path("/helloSAS")
     @Produces(MediaType.TEXT_PLAIN)
     public Response hello() {
         try {

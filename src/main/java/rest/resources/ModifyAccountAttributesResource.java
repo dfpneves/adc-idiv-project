@@ -30,23 +30,21 @@ import com.google.gson.Gson;
 
 @Path("")
 @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
-public class ShowUsersResource {
+public class ModifyAccountAttributesResource {
 
     /**
      * Logger Object
      */
-    private static final Logger LOG = Logger.getLogger(ShowUsersResource.class.getName());
+    private static final Logger LOG = Logger.getLogger(ModifyAccountAttributesResource.class.getName());
     private static final Datastore datastore = DatastoreOptions.getDefaultInstance().getService();
     private static final KeyFactory userKeyFactory = datastore.newKeyFactory().setKind("User");
 
     private final Gson g = new Gson();
 
-    public ShowUsersResource() {
-    }
-
+    public ModifyAccountAttributesResource() { }
 
     @POST
-    @Path("/ShowUsers")
+    @Path("/ModifyAccountAttributes")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doCreateAccount(Operation<InputData> op) {
@@ -63,11 +61,22 @@ public class ShowUsersResource {
             return Response.ok("validate token null",MediaType.TEXT_PLAIN).build();
         }
 
+        String targetUsername = inputData.username;
+
+        if (targetUsername == null){
+            return Response.ok("not valid username",MediaType.TEXT_PLAIN).build();
+        }
+
+        // Get target user
+        Key targetKey = userKeyFactory.newKey(targetUsername);
+        Entity targetUser = datastore.get(targetKey);
+
+        if (targetUser == null) {
+            return Response.ok("user not found",MediaType.TEXT_PLAIN).build();
+        }
+
+        // get token username
         String username = tokenLog.getString("username");
-        LOG.info("Token login successful for: " + username);
-
-        LOG.fine("Attempt to login user: " + username);
-
         Key userKey = userKeyFactory.newKey(username);
         Entity callerUser = datastore.get(userKey);
 
@@ -75,73 +84,53 @@ public class ShowUsersResource {
             return Response.ok("User does not exist or no type",MediaType.TEXT_PLAIN).build();
         }
 
-        String callerRole = callerUser.getString("user_role");
+        if (!(targetUsername.equals(username))){
+            // trying not the same user
+            return Response.ok("not the same user",MediaType.TEXT_PLAIN).build();
+        }
 
-        // Prepare the query for users
-        Query<Entity> query;
+        Entity updatedUser = Entity.newBuilder(callerUser).build();
+
+        // does not update the c
+        if (inputData.phone != null) {
+            updatedUser = Entity.newBuilder(callerUser)
+                    .set("user_phone", inputData.phone)
+                    .build();
+        }
+
+        if (inputData.address != null) {
+            updatedUser = Entity.newBuilder(callerUser)
+                    .set("user_address", inputData.address)
+                    .build();
+        }
 
         Datastore datastore = DatastoreOptions.getDefaultInstance().getService();
-        Query<Entity> allUsersQuery;
 
-        // ADMIN sees all users
-        if ("ADMIN".equals(callerRole)) {
-            allUsersQuery = Query.newEntityQueryBuilder()
-                    .setKind("User")
-                    .build();
-        }
-        // BOFFICER sees only USER accounts
-        else if ("BOFFICER".equals(callerRole)) {
-            allUsersQuery = Query.newEntityQueryBuilder()
-                    .setKind("User")
-                    .setFilter(StructuredQuery.PropertyFilter.eq("user_role", "USER"))
-                    .build();
-        }
-        // Other roles are unauthorized
-        else {
-            // add error here
-            return Response.ok("role error",MediaType.TEXT_PLAIN).build();
-        }
-
-        // Execute the query
-        QueryResults<Entity> results = datastore.run(allUsersQuery);
+        datastore.put(updatedUser);
 
 
-        // Build JSON array
-        JsonArray usersArray = new JsonArray();
 
-        try {
-            while (results.hasNext()) {
-                Entity user = results.next();
-                JsonObject userJson = new JsonObject();
-                userJson.addProperty("userId", user.getKey().getName());
-                userJson.addProperty("username", user.getKey().getName());  // or user.getString("user_username") if stored
-                userJson.addProperty("email", user.getKey().getName());
-                userJson.addProperty("role", user.getString("user_role"));
-                usersArray.add(userJson);
-            }
-            // Wrap in final response
-            JsonObject response = new JsonObject();
-            response.addProperty("status", "success");
-            JsonObject dataJson = new JsonObject();
-            dataJson.add("users", usersArray);
-            response.add("data", dataJson);
+        JsonObject outJson = new JsonObject();
 
-            return Response.ok(g.toJson(response), MediaType.APPLICATION_JSON).build();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Response.ok("ERROR: " + e.getMessage(), MediaType.TEXT_PLAIN).build();
-        }
+        JsonObject dataJson = new JsonObject();
+
+
+        outJson.addProperty("status", "success");
+        dataJson.addProperty("message", "Updated successfully");
+        outJson.add("data", dataJson);
+
+        return Response.ok(g.toJson(outJson), MediaType.APPLICATION_JSON).build();
     }
 
     @GET
-    @Path("/helloSU")
+    @Path("/helloMAA")
     @Produces(MediaType.TEXT_PLAIN)
     public Response hello() {
         try {
             throw new IOException("UPS");
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "Exception on Method /hello", e);
-            return Response.ok("all good, hello",MediaType.TEXT_PLAIN).build();
+            return Response.temporaryRedirect(URI.create("/error/500.html")).build();
         }
     }
 

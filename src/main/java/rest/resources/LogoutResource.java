@@ -1,50 +1,40 @@
 package rest.resources;
 
 
-import java.io.IOException;
-import java.net.URI;
-import java.sql.Time;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import com.google.cloud.datastore.*;
-import com.google.gson.JsonArray;
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import org.apache.commons.codec.digest.DigestUtils;
-
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
+import org.apache.commons.codec.digest.DigestUtils;
+import rest.util.InputData;
+import rest.util.Operation;
+import rest.util.TokenData;
 
-import rest.util.*;
-
-import com.google.cloud.Timestamp;
-import com.google.gson.Gson;
+import java.io.IOException;
+import java.net.URI;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 @Path("")
 @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
-public class DeleteAccountResource {
+public class LogoutResource {
 
     /**
      * Logger Object
      */
-    private static final Logger LOG = Logger.getLogger(LoginResource.class.getName());
+    private static final Logger LOG = Logger.getLogger(LogoutResource.class.getName());
     private static final Datastore datastore = DatastoreOptions.getDefaultInstance().getService();
     private static final KeyFactory userKeyFactory = datastore.newKeyFactory().setKind("User");
 
     private final Gson g = new Gson();
 
-    public DeleteAccountResource() { }
+    public LogoutResource() { }
 
     @POST
-    @Path("/DeleteAccount")
+    @Path("/Logout")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doCreateAccount(Operation<InputData> op) {
@@ -75,8 +65,8 @@ public class DeleteAccountResource {
             return Response.ok("user not found",MediaType.TEXT_PLAIN).build();
         }
 
+        // get token username
         String username = tokenLog.getString("username");
-
         Key userKey = userKeyFactory.newKey(username);
         Entity callerUser = datastore.get(userKey);
 
@@ -84,27 +74,25 @@ public class DeleteAccountResource {
             return Response.ok("User does not exist or no type",MediaType.TEXT_PLAIN).build();
         }
 
-        String callerRole = callerUser.getString("user_role");
+        // assuming logout of every session from target user
+        if (!("ADMIN".equals(callerUser.getString("user_role")))){
+            return Response.ok("Role Error",MediaType.TEXT_PLAIN).build();
+        } else if (!(targetUsername.equals(username))){
+            return Response.ok("Role Error permission",MediaType.TEXT_PLAIN).build();
+        }
 
         Datastore datastore = DatastoreOptions.getDefaultInstance().getService();
+        Query<Entity> allTokensQuery = Query.newEntityQueryBuilder()
+                .setKind("Token")
+                .setFilter(StructuredQuery.PropertyFilter.eq("username", targetUsername))
+                .build();
 
-        if ("ADMIN".equals(callerRole)) {
-            // delete the tokens
-            Query<Entity> allTokensQuery = Query.newEntityQueryBuilder()
-                    .setKind("Token")
-                    .setFilter(StructuredQuery.PropertyFilter.eq("username", targetUsername))
-                    .build();
+        // Execute the query
+        QueryResults<Entity> results = datastore.run(allTokensQuery);
 
-            QueryResults<Entity> results = datastore.run(allTokensQuery);
-
-            while (results.hasNext()) {
-                Entity token = results.next();
-                datastore.delete(token.getKey());
-            }
-            datastore.delete(targetKey);
-        } else {
-            // add error here
-            return Response.ok("role error",MediaType.TEXT_PLAIN).build();
+        while (results.hasNext()) {
+            Entity token = results.next();
+            datastore.delete(token.getKey());
         }
 
         JsonObject outJson = new JsonObject();
@@ -113,21 +101,21 @@ public class DeleteAccountResource {
 
 
         outJson.addProperty("status", "success");
-        dataJson.addProperty("message", "Account deleted successfully");
+        dataJson.addProperty("message", "Logout successful");
         outJson.add("data", dataJson);
 
         return Response.ok(g.toJson(outJson), MediaType.APPLICATION_JSON).build();
     }
 
     @GET
-    @Path("/helloDA")
+    @Path("/helloL")
     @Produces(MediaType.TEXT_PLAIN)
     public Response hello() {
         try {
             throw new IOException("UPS");
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "Exception on Method /hello", e);
-            return Response.ok("all good, hello",MediaType.TEXT_PLAIN).build();
+            return Response.temporaryRedirect(URI.create("/error/500.html")).build();
         }
     }
 
@@ -152,5 +140,4 @@ public class DeleteAccountResource {
 
         return token;
     }
-
 }

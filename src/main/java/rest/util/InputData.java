@@ -4,6 +4,13 @@ public class InputData {
     public String username; // email
     public String password;
     public String tokenId;
+    public String phone;
+    public String address;
+    public String newRole;
+    public String oldPassword;
+    public String newPassword;
+
+
 
     public InputData() {  }
 
