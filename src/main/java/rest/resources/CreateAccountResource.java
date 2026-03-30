@@ -31,14 +31,15 @@ public class CreateAccountResource {
     @POST
     @Path("/CreateAccount")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response registerUserV3(Operation<CreateAccountData> op) {
-        CreateAccountData data = op.input;
+    public Response registerUserV3(Operation<InputData> op) {
+        InputData data = op.input;
 
         LOG.fine("Attempt to register user: " + data.username);
 
+        OutputData out = new OutputData();
+
         if(!data.validCreateAccount()) {
-            // INVALID_INPUT 9906
-            return Response.status(Response.Status.BAD_REQUEST).entity("Missing or wrong parameter.").build();
+            return Response.ok(g.toJson(out.getOutError(Errors.INVALID_INPUT)), MediaType.APPLICATION_JSON).build();
         }
 
         try {
@@ -49,7 +50,7 @@ public class CreateAccountResource {
             if(user != null) {
                 // USER_ALREADY_EXISTS 9901
                 txn.rollback();
-                return Response.status(Response.Status.CONFLICT).entity("User already exists.").build();
+                return Response.ok(g.toJson(out.getOutError(Errors.USER_ALREADY_EXISTS)), MediaType.APPLICATION_JSON).build();
             }
             else {
                 user = Entity.newBuilder(userKey)
@@ -65,8 +66,15 @@ public class CreateAccountResource {
                 LOG.info("User account created " + data.username);
 
 
-                OutputJ<OutputData> out = new OutputJ<>(new OutputData(data.username, data.role), "success");
-                return Response.ok(g.toJson(out)).build();
+
+
+                JsonObject dataJson = new JsonObject();
+                dataJson.addProperty("username", data.username);
+                dataJson.addProperty("role", data.role);
+
+                JsonObject outJson = out.getOut(dataJson);
+
+                return Response.ok(g.toJson(outJson)).build();
             }
         } catch (Exception e) {
             //e.printStackTrace();
@@ -75,16 +83,3 @@ public class CreateAccountResource {
         }
     }
 }
-
-/*
-alternative output jason, using json objects also valid
-
-JsonObject out = new JsonObject();
-out.addProperty("status", "success");
-
-JsonObject dataJson = new JsonObject();
-dataJson.addProperty("username", data.username);
-dataJson.addProperty("role", data.role);
-
-out.add("data", dataJson);
-*/

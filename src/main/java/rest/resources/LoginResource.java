@@ -43,13 +43,13 @@ public class LoginResource {
 	public LoginResource() {} // Nothing to be done here
 
 
-
-
     @POST
     @Path("/Login")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doCreateAccount(Operation<InputData> op) {
+
+        OutputData out = new OutputData();
 
         LOG.fine("Attempt to login user");
 
@@ -63,17 +63,9 @@ public class LoginResource {
         if( user != null ) {
             String hashedPWD = user.getString("user_pwd");
             if( hashedPWD.equals(DigestUtils.sha512Hex(data.password))) {
-                KeyFactory logKeyFactory = datastore.newKeyFactory()
-                        .addAncestor(PathElement.of("User", data.username))
-                        .setKind("UserLog");
-                Key logKey = datastore.allocateId(logKeyFactory.newKey());
-                Entity userLog = Entity.newBuilder(logKey)
-                        .set("user_login_time", Timestamp.now())
-                        .build();
-                datastore.put(userLog);
                 LOG.info("User '" + data.username + "' logged in successfuly.");
 
-                AuthToken token = new AuthToken(data.username);
+                AuthToken token = new AuthToken(data.username, user.getString("user_role"));
 
                 // added token storer
                 Key tokenKey = datastore.newKeyFactory()
@@ -83,6 +75,7 @@ public class LoginResource {
 
                 Entity tokenEntity = Entity.newBuilder(tokenKey)
                         .set("username", token.username)
+                        .set("role", user.getString("user_role"))
                         .set("creationData", token.creationData)
                         .set("expirationData", token.expirationData)
                         .build();
@@ -94,37 +87,32 @@ public class LoginResource {
             else {
                 // INVALID_CREDENTIALS 9900
                 LOG.warning("Wrong password for: " + data.username);
-                return Response.status(Status.FORBIDDEN).build();
+                return Response.ok(g.toJson(out.getOutError(Errors.INVALID_CREDENTIALS)), MediaType.APPLICATION_JSON).build();
             }
         }
         else {
             // USER_NOT_FOUND 9902
             LOG.warning("Failed login attempt for username: " + data.username);
-            return Response.status(Status.FORBIDDEN).build();
+            return Response.ok(g.toJson(out.getOutError(Errors.USER_NOT_FOUND)), MediaType.APPLICATION_JSON).build();
         }
     }
+}
+/*
+NOTE
+tokens, although they do have a role,
+they always get the user role from the user
+previously changing a user's role would not change
+its permissions for an already lagged in session,
+this way it always checks the user role
 
-    private Entity validateToken(String tokenID) {
+method 1
+store role in token and use that for permissions
 
-        if(tokenID == null)
-            return null;
+method 2
+use the role stored in the User, heavier but
+does restrict a signed-in user's actions
 
-        Key tokenKey = datastore.newKeyFactory()
-                .setKind("Token")
-                .newKey(tokenID);
-
-        Entity token = datastore.get(tokenKey);
-
-        if(token == null)
-            return null;
-
-        long expiration = token.getLong("expirationData");
-
-        if(System.currentTimeMillis() > expiration)
-            return null;
-
-        return token;
-    }
+for this project I went with second approach.
 
 
     @POST@Path("/ReLogin")
@@ -136,7 +124,7 @@ public class LoginResource {
 
         LOG.fine("Attempt to login user");
 
-        Entity tokenLog = validateToken(tData.tokenId);
+        Entity tokenLog = getToken(tData.tokenId);
 
         if(tokenLog != null) {
             String username = tokenLog.getString("username");
@@ -177,4 +165,5 @@ public class LoginResource {
             return Response.status(Status.FORBIDDEN).build();
         }
     }
-}
+
+ */

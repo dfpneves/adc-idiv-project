@@ -1,11 +1,7 @@
 package rest.resources;
 
-import java.io.IOException;
-import java.net.URI;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.ws.rs.GET;
@@ -21,10 +17,7 @@ import com.google.gson.Gson;
 @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8") 
 public class ComputationResource {
 
-    private static final Logger LOG = Logger.getLogger(ComputationResource.class.getName());
     private final Gson g = new Gson();
-
-    private static final DateFormat fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
 
     public ComputationResource() {
     } //nothing to be done here @GET
@@ -33,19 +26,6 @@ public class ComputationResource {
     @Path("/hello")
     @Produces(MediaType.TEXT_PLAIN)
     public Response hello() {
-        try {
-            throw new IOException("UPS");
-        } catch (Exception e) {
-            LOG.log(Level.SEVERE, "Exception on Method /hello", e);
             return Response.ok("all good, hello",MediaType.TEXT_PLAIN).build();
-        }
     }
-
-	@GET
-	@Path("/time")
-	public Response getCurrentTime() {
-
-		LOG.fine("Replying to date request.");
-		return Response.ok().entity(g.toJson(fmt.format(new Date()))).build();
-	}
 }

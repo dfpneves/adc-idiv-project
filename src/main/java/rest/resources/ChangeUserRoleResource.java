@@ -51,48 +51,49 @@ public class ChangeUserRoleResource  {
         InputData inputData = op.input;
         TokenData tokenData = op.token;
 
-        if (tokenData == null){
-            return Response.ok("token data null",MediaType.TEXT_PLAIN).build();
-        }
+        OutputData out = new OutputData();
+        // token checks
+        if (tokenData == null)
+            return Response.ok(g.toJson(out.getOutError(Errors.INVALID_TOKEN)), MediaType.APPLICATION_JSON).build();
 
-        Entity tokenLog = validateToken(tokenData.tokenId);
+        Entity tokenLog = TokenValidation.getToken(tokenData.tokenId);
 
-        if (tokenLog == null){
-            return Response.ok("validate token null",MediaType.TEXT_PLAIN).build();
-        }
+        if (tokenLog == null)
+            return Response.ok(g.toJson(out.getOutError(Errors.INVALID_TOKEN)), MediaType.APPLICATION_JSON).build();
+
+        if (TokenValidation.expiredToken(tokenLog))
+            return Response.ok(g.toJson(out.getOutError(Errors.TOKEN_EXPIRED)), MediaType.APPLICATION_JSON).build();
 
         String targetUsername = inputData.username;
-
-        if (targetUsername == null){
-            return Response.ok("not valid username",MediaType.TEXT_PLAIN).build();
-        }
+        // input cheks
+        if (targetUsername == null)
+            return Response.ok(g.toJson(out.getOutError(Errors.USER_NOT_FOUND)), MediaType.APPLICATION_JSON).build();
 
         // Get target user
         Key targetKey = userKeyFactory.newKey(targetUsername);
         Entity targetUser = datastore.get(targetKey);
 
-        if (targetUser == null) {
-            return Response.ok("user not found",MediaType.TEXT_PLAIN).build();
-        }
+        if (targetUser == null)
+            return Response.ok(g.toJson(out.getOutError(Errors.USER_NOT_FOUND)), MediaType.APPLICATION_JSON).build();
+
 
         // get token username
         String username = tokenLog.getString("username");
         Key userKey = userKeyFactory.newKey(username);
         Entity callerUser = datastore.get(userKey);
 
-        if (callerUser == null) {
-            return Response.ok("User does not exist or no type",MediaType.TEXT_PLAIN).build();
-        }
+        // session user exists
+        if (callerUser == null)
+            return Response.ok(g.toJson(out.getOutError(Errors.FORBIDDEN)), MediaType.APPLICATION_JSON).build();
 
-        if (!("ADMIN".equals(callerUser.getString("user_role")))){
-            return Response.ok("Role Error",MediaType.TEXT_PLAIN).build();
-        }
+        // role check
+        if (!("ADMIN".equals(callerUser.getString("user_role"))))
+            return Response.ok(g.toJson(out.getOutError(Errors.UNAUTHORIZED)), MediaType.APPLICATION_JSON).build();
 
         String newRole = inputData.newRole;
 
-        if (!validRole(newRole)){
-            return Response.ok("Invalid input error",MediaType.TEXT_PLAIN).build();
-        }
+        if (!validRole(newRole)) // invalid credentials ?? role is not correct
+            return Response.ok(g.toJson(out.getOutError(Errors.INVALID_INPUT)), MediaType.APPLICATION_JSON).build();
 
         Entity updatedUser = Entity.newBuilder(targetUser)
                 .set("user_role", newRole)
@@ -102,50 +103,12 @@ public class ChangeUserRoleResource  {
 
         datastore.put(updatedUser);
 
-        JsonObject outJson = new JsonObject();
-
         JsonObject dataJson = new JsonObject();
-
-
-        outJson.addProperty("status", "success");
         dataJson.addProperty("message", "Role updated successfully");
-        outJson.add("data", dataJson);
+
+        JsonObject outJson = out.getOut(dataJson);
 
         return Response.ok(g.toJson(outJson), MediaType.APPLICATION_JSON).build();
-    }
-
-    @GET
-    @Path("/helloCUR")
-    @Produces(MediaType.TEXT_PLAIN)
-    public Response hello() {
-        try {
-            throw new IOException("UPS");
-        } catch (Exception e) {
-            LOG.log(Level.SEVERE, "Exception on Method /hello", e);
-            return Response.temporaryRedirect(URI.create("/error/500.html")).build();
-        }
-    }
-
-    private Entity validateToken(String tokenID) {
-
-        if(tokenID == null)
-            return null;
-
-        Key tokenKey = datastore.newKeyFactory()
-                .setKind("Token")
-                .newKey(tokenID);
-
-        Entity token = datastore.get(tokenKey);
-
-        if(token == null)
-            return null;
-
-        long expiration = token.getLong("expirationData");
-
-        if(System.currentTimeMillis() > expiration)
-            return null;
-
-        return token;
     }
 
     private boolean validRole(String role){

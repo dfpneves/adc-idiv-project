@@ -1,30 +1,21 @@
 package rest.resources;
 
 
-import java.io.IOException;
-import java.net.URI;
-import java.sql.Time;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.google.cloud.datastore.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import org.apache.commons.codec.digest.DigestUtils;
 
 import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
 
 import rest.util.*;
 
-import com.google.cloud.Timestamp;
 import com.google.gson.Gson;
 
 
@@ -53,15 +44,18 @@ public class ShowUsersResource {
         InputData inputData = op.input;
         TokenData tokenData = op.token;
 
-        if (tokenData == null){
-            return Response.ok("token data null",MediaType.TEXT_PLAIN).build();
-        }
+        OutputData out = new OutputData();
+        // token checks
+        if (tokenData == null)
+            return Response.ok(g.toJson(out.getOutError(Errors.INVALID_TOKEN)), MediaType.APPLICATION_JSON).build();
 
-        Entity tokenLog = validateToken(tokenData.tokenId);
+        Entity tokenLog = TokenValidation.getToken(tokenData.tokenId);
 
-        if (tokenLog == null){
-            return Response.ok("validate token null",MediaType.TEXT_PLAIN).build();
-        }
+        if (tokenLog == null)
+            return Response.ok(g.toJson(out.getOutError(Errors.INVALID_TOKEN)), MediaType.APPLICATION_JSON).build();
+
+        if (TokenValidation.expiredToken(tokenLog))
+            return Response.ok(g.toJson(out.getOutError(Errors.TOKEN_EXPIRED)), MediaType.APPLICATION_JSON).build();
 
         String username = tokenLog.getString("username");
         LOG.info("Token login successful for: " + username);
@@ -99,7 +93,7 @@ public class ShowUsersResource {
         // Other roles are unauthorized
         else {
             // add error here
-            return Response.ok("role error",MediaType.TEXT_PLAIN).build();
+            return Response.ok(g.toJson(out.getOutError(Errors.UNAUTHORIZED)), MediaType.APPLICATION_JSON).build();
         }
 
         // Execute the query
@@ -119,52 +113,15 @@ public class ShowUsersResource {
                 userJson.addProperty("role", user.getString("user_role"));
                 usersArray.add(userJson);
             }
-            // Wrap in final response
-            JsonObject response = new JsonObject();
-            response.addProperty("status", "success");
+
             JsonObject dataJson = new JsonObject();
             dataJson.add("users", usersArray);
-            response.add("data", dataJson);
+            JsonObject outJson = out.getOut(dataJson);
 
-            return Response.ok(g.toJson(response), MediaType.APPLICATION_JSON).build();
+            return Response.ok(g.toJson(outJson), MediaType.APPLICATION_JSON).build();
         } catch (Exception e) {
-            e.printStackTrace();
+            // unexpected error
             return Response.ok("ERROR: " + e.getMessage(), MediaType.TEXT_PLAIN).build();
         }
     }
-
-    @GET
-    @Path("/helloSU")
-    @Produces(MediaType.TEXT_PLAIN)
-    public Response hello() {
-        try {
-            throw new IOException("UPS");
-        } catch (Exception e) {
-            LOG.log(Level.SEVERE, "Exception on Method /hello", e);
-            return Response.ok("all good, hello",MediaType.TEXT_PLAIN).build();
-        }
-    }
-
-    private Entity validateToken(String tokenID) {
-
-        if(tokenID == null)
-            return null;
-
-        Key tokenKey = datastore.newKeyFactory()
-                .setKind("Token")
-                .newKey(tokenID);
-
-        Entity token = datastore.get(tokenKey);
-
-        if(token == null)
-            return null;
-
-        long expiration = token.getLong("expirationData");
-
-        if(System.currentTimeMillis() > expiration)
-            return null;
-
-        return token;
-    }
-
 }
