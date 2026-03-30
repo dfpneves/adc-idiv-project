@@ -35,7 +35,7 @@ public class ChangeUserPasswordResource {
     @Path("/ChangeUserPassword")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response doCreateAccount(Operation<InputData> op) {
+    public Response doChangeUserPassword(Operation<InputData> op) {
         InputData inputData = op.input;
         TokenData tokenData = op.token;
 

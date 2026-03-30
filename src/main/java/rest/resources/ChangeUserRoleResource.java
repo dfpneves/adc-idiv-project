@@ -47,7 +47,7 @@ public class ChangeUserRoleResource  {
     @Path("/ChangeUserRole")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response doCreateAccount(Operation<InputData> op) {
+    public Response doChangeUsrRole(Operation<InputData> op) {
         InputData inputData = op.input;
         TokenData tokenData = op.token;
 
@@ -114,5 +114,4 @@ public class ChangeUserRoleResource  {
     private boolean validRole(String role){
         return role.equals("USER") || role.equals("BOFFICER") || role.equals("ADMIN");
     }
-
 }

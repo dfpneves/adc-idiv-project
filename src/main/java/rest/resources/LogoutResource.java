@@ -35,7 +35,7 @@ public class LogoutResource {
     @Path("/Logout")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response doCreateAccount(Operation<InputData> op) {
+    public Response doLogout(Operation<InputData> op) {
         InputData inputData = op.input;
         TokenData tokenData = op.token;
 
@@ -91,7 +91,6 @@ public class LogoutResource {
             Entity token = results.next();
             datastore.delete(token.getKey());
         }
-
 
         JsonObject dataJson = new JsonObject();
         dataJson.addProperty("message", "Logout successful");

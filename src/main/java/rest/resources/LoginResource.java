@@ -47,7 +47,7 @@ public class LoginResource {
     @Path("/Login")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response doCreateAccount(Operation<InputData> op) {
+    public Response doLogin(Operation<InputData> op) {
 
         OutputData out = new OutputData();
 

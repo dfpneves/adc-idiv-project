@@ -37,7 +37,7 @@ public class DeleteAccountResource {
     @Path("/DeleteAccount")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response doCreateAccount(Operation<InputData> op) {
+    public Response doDelete(Operation<InputData> op) {
         InputData inputData = op.input;
         TokenData tokenData = op.token;
 

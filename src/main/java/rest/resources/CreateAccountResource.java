@@ -31,7 +31,7 @@ public class CreateAccountResource {
     @POST
     @Path("/CreateAccount")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response registerUserV3(Operation<InputData> op) {
+    public Response doCreateAccount(Operation<InputData> op) {
         InputData data = op.input;
 
         LOG.fine("Attempt to register user: " + data.username);

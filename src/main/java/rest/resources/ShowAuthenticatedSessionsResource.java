@@ -49,7 +49,7 @@ public class ShowAuthenticatedSessionsResource {
     @Path("/ShowAuthenticatedSessions")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response showAuthenticatedSessionsResource(Operation<InputData> op) {
+    public Response doShowAuthenticatedSessionsResource(Operation<InputData> op) {
         InputData inputData = op.input;
         TokenData tokenData = op.token;
 
