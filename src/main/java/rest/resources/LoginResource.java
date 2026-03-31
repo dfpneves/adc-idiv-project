@@ -51,6 +51,10 @@ public class LoginResource {
 
         OutputData out = new OutputData();
 
+        if(op == null || op.input == null || op.input.username == null || op.input.password == null)
+            return Response.ok(g.toJson(out.getOutError(Errors.INVALID_INPUT)), MediaType.APPLICATION_JSON).build();
+
+
         LOG.fine("Attempt to login user");
 
         InputData data = op.input;
@@ -58,11 +62,12 @@ public class LoginResource {
         LOG.fine("Attempt to login user: " + data.username);
 
         Key userKey = userKeyFactory.newKey(data.username);
+        String password = data.password;
         Entity user = datastore.get(userKey);
 
         if( user != null ) {
             String hashedPWD = user.getString("user_pwd");
-            if( hashedPWD.equals(DigestUtils.sha512Hex(data.password))) {
+            if( hashedPWD.equals(DigestUtils.sha512Hex(password))) {
                 LOG.info("User '" + data.username + "' logged in successfuly.");
 
                 AuthToken token = new AuthToken(data.username, user.getString("user_role"));

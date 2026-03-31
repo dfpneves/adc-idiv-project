@@ -37,8 +37,11 @@ public class CreateAccountResource {
         LOG.fine("Attempt to register user: " + data.username);
 
         OutputData out = new OutputData();
-
-        if(!data.validCreateAccount()) {
+        try {
+            if (!data.validCreateAccount()) {
+                return Response.ok(g.toJson(out.getOutError(Errors.INVALID_INPUT)), MediaType.APPLICATION_JSON).build();
+            }
+        } catch (Exception e) {
             return Response.ok(g.toJson(out.getOutError(Errors.INVALID_INPUT)), MediaType.APPLICATION_JSON).build();
         }
 
