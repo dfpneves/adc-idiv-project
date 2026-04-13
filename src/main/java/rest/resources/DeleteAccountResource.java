@@ -34,7 +34,7 @@ public class DeleteAccountResource {
     public DeleteAccountResource() { }
 
     @POST
-    @Path("/DeleteAccount")
+    @Path("/deleteaccount")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doDelete(Operation<InputData> op) {

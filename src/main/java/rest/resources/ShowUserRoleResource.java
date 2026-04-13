@@ -44,7 +44,7 @@ public class ShowUserRoleResource  {
     public ShowUserRoleResource() { }
 
     @POST
-    @Path("/ShowUserRole")
+    @Path("/showuserrole")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doShowUserRole(Operation<InputData> op) {

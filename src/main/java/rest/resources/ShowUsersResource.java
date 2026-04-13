@@ -37,7 +37,7 @@ public class ShowUsersResource {
 
 
     @POST
-    @Path("/ShowUsers")
+    @Path("/showusers")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doUsers(Operation<InputData> op) {

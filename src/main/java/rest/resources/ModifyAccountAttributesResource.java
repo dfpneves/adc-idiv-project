@@ -34,7 +34,7 @@ public class ModifyAccountAttributesResource {
     public ModifyAccountAttributesResource() { }
 
     @POST
-    @Path("/ModifyAccountAttributes")
+    @Path("/modifyaccountattributes")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doModifyAttributes(Operation<InputData> op) {

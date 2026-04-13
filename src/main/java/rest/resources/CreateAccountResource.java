@@ -29,7 +29,7 @@ public class CreateAccountResource {
 
 
     @POST
-    @Path("/CreateAccount")
+    @Path("/createaccount")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response doCreateAccount(Operation<InputData> op) {
         InputData data = op.input;

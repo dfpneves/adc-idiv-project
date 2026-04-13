@@ -32,7 +32,7 @@ public class LogoutResource {
     public LogoutResource() { }
 
     @POST
-    @Path("/Logout")
+    @Path("/logout")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doLogout(Operation<InputData> op) {
@@ -73,10 +73,10 @@ public class LogoutResource {
             return Response.ok(g.toJson(out.getOutError(Errors.FORBIDDEN)), MediaType.APPLICATION_JSON).build();
 
         // assuming logout of every session from target user
-        if (!("ADMIN".equals(callerUser.getString("user_role"))))
-            return Response.ok(g.toJson(out.getOutError(Errors.UNAUTHORIZED)), MediaType.APPLICATION_JSON).build();
-        else if (!(targetUsername.equals(username)))
-            return Response.ok(g.toJson(out.getOutError(Errors.UNAUTHORIZED)), MediaType.APPLICATION_JSON).build();
+        if (!("ADMIN".equals(callerUser.getString("user_role"))) && !(targetUsername.equals(username))) {
+            return Response.ok("1",MediaType.TEXT_PLAIN).build();
+            //return Response.ok(g.toJson(out.getOutError(Errors.UNAUTHORIZED)), MediaType.APPLICATION_JSON).build();
+        }
 
         Datastore datastore = DatastoreOptions.getDefaultInstance().getService();
         Query<Entity> allTokensQuery = Query.newEntityQueryBuilder()

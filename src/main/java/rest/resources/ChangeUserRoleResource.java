@@ -44,7 +44,7 @@ public class ChangeUserRoleResource  {
     public ChangeUserRoleResource () { }
 
     @POST
-    @Path("/ChangeUserRole")
+    @Path("/changeuserrole")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doChangeUsrRole(Operation<InputData> op) {

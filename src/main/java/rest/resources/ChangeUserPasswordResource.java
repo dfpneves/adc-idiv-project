@@ -32,7 +32,7 @@ public class ChangeUserPasswordResource {
     public ChangeUserPasswordResource() { }
 
     @POST
-    @Path("/ChangeUserPassword")
+    @Path("/changeUserpassword")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doChangeUserPassword(Operation<InputData> op) {

@@ -44,7 +44,7 @@ public class LoginResource {
 
 
     @POST
-    @Path("/Login")
+    @Path("/login")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response doLogin(Operation<InputData> op) {
